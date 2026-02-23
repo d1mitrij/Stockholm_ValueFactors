@@ -20,17 +20,42 @@ import numpy as np
 from pathlib import Path
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-ROOT_DIR = Path(__file__).parent.parent
+ROOT_DIR = Path(__file__).parent          # eps_value_factors/
+DATA_DIR = ROOT_DIR / "data"              # eps_value_factors/data/  (downloaded XLSXs)
+
+# ── Source URLs — used by fetch_eps_data.py ─────────────────────────────────────
+# Files are published by the Swedish Life Cycle Center at Chalmers University.
+# Page: https://www.lifecyclecenter.se/publications/eps-2015d1-excluding-climate-impacts-from-secondary-particles/
+SOURCE_URLS: dict[str, dict[str, str]] = {
+    "4a": {
+        "url": (
+            "https://www.lifecyclecenter.se/wp-content/uploads/"
+            "2015_4a-EPS-2015d.1-Including-climate-impacts-from-secondary-particles.xlsx"
+        ),
+        "filename": (
+            "2015_4a-EPS-2015d.1-Including-climate-impacts-from-secondary-particles.xlsx"
+        ),
+        "description": "EPS 2015d.1 including climate impacts from secondary particles",
+        "report":      "Report 2015:4a",
+    },
+    "4b": {
+        "url": (
+            "https://www.lifecyclecenter.se/wp-content/uploads/"
+            "2015_4b-EPS-2015dx.1-excluding-climate-impacts-from-secondary-particles-1.xlsx"
+        ),
+        "filename": (
+            "2015_4b-EPS-2015dx.1-excluding-climate-impacts-from-secondary-particles-1.xlsx"
+        ),
+        "description": "EPS 2015dx.1 excluding climate impacts from secondary particles",
+        "report":      "Report 2015:4b",
+    },
+}
 
 COMMON_PATHS = {
-    # EPS 2015 source XLSX (both variants available)
-    "eps_xlsx_with_secondary": ROOT_DIR / (
-        "2015_4a-EPS-2015d.1-Including-climate-impacts-from-secondary-particles (1).xlsx"
-    ),
-    "eps_xlsx_without_secondary": ROOT_DIR / "old" / (
-        "2015_4b-EPS-2015dx.1-excluding-climate-impacts-from-secondary-particles-1.xlsx"
-    ),
-    "output_dir": Path(__file__).parent / "output",
+    # EPS 2015 source XLSXs — placed in data/ by fetch_eps_data.py
+    "eps_xlsx_with_secondary":    DATA_DIR / SOURCE_URLS["4a"]["filename"],
+    "eps_xlsx_without_secondary": DATA_DIR / SOURCE_URLS["4b"]["filename"],
+    "output_dir": ROOT_DIR / "output",
 }
 
 # ── Countries ──────────────────────────────────────────────────────────────────

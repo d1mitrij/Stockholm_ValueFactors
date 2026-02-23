@@ -694,6 +694,13 @@ def run_indicator(indicator_key: str, xlsx_path: str | Path | None = None) -> di
     if xlsx_path is None:
         xlsx_path = cfg["eps_xlsx_with_secondary"]
 
+    xlsx_path = Path(xlsx_path)
+    if not xlsx_path.exists():
+        raise FileNotFoundError(
+            f"EPS source file not found: {xlsx_path}\n"
+            "Run 'python fetch_eps_data.py' to download it from the Swedish Life Cycle Center."
+        )
+
     logger.info("=" * 60)
     logger.info("Indicator : %s", indicator_key)
     logger.info("Sheet     : %s", sheet_name)
