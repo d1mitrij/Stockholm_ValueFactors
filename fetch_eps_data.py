@@ -53,12 +53,11 @@ LICENSE_NOTE = (
 
 # ── Progress display ────────────────────────────────────────────────────────────
 
-def _reporthook(block_num: int, block_size: int, total_size: int) -> None:
-    downloaded = block_num * block_size
-    if total_size > 0:
-        pct = min(100, downloaded * 100 // total_size)
-        mb_done = downloaded / 1_048_576
-        mb_total = total_size / 1_048_576
+def _reporthook(downloaded: int, chunk: int, total: int) -> None:
+    mb_done = downloaded / 1_048_576
+    if total > 0:
+        pct = min(100, downloaded * 100 // total)
+        mb_total = total / 1_048_576
         bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
         print(
             f"\r    [{bar}] {pct:3d}%  {mb_done:.1f}/{mb_total:.1f} MB",
@@ -66,7 +65,6 @@ def _reporthook(block_num: int, block_size: int, total_size: int) -> None:
             flush=True,
         )
     else:
-        mb_done = downloaded / 1_048_576
         print(f"\r    {mb_done:.1f} MB downloaded", end="", flush=True)
 
 
@@ -79,9 +77,20 @@ def _file_status(dest: Path) -> str:
     return f"OK  ({size_mb:.1f} MB,  {dest})"
 
 
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"
+    ),
+    "Accept": "application/octet-stream,*/*",
+}
+
+_CHUNK = 65_536  # 64 KiB read chunks
+
+
 def _download(url: str, dest: Path) -> bool:
     """
     Download *url* to *dest*, showing a progress bar.
+    Sends a browser User-Agent (servers block Python's default agent).
     Returns True on success, False on error.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -89,12 +98,25 @@ def _download(url: str, dest: Path) -> bool:
     print(f"    {url}")
     print(f"    → {dest}")
     try:
-        urllib.request.urlretrieve(url, tmp, reporthook=_reporthook)
+        req = urllib.request.Request(url, headers=_HEADERS)
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            total = int(resp.headers.get("Content-Length", 0))
+            downloaded = 0
+            with tmp.open("wb") as fh:
+                while True:
+                    chunk = resp.read(_CHUNK)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+                    downloaded += len(chunk)
+                    _reporthook(downloaded, _CHUNK, total)
         print()  # newline after progress bar
         tmp.rename(dest)
         size_mb = dest.stat().st_size / 1_048_576
         print(f"    Saved: {size_mb:.1f} MB")
         return True
+    except urllib.error.HTTPError as exc:
+        print(f"\n    ERROR (HTTP {exc.code}): {exc.reason}")
     except urllib.error.URLError as exc:
         print(f"\n    ERROR (network): {exc.reason}")
     except OSError as exc:
