@@ -11,7 +11,5 @@ venv/
 execution_log_*.txt
 indicators/_template.py
 
-# Source XLSX files — © Swedish Life Cycle Center 2015, not redistributed.
-# Run `python fetch_eps_data.py` to download them locally.
-data/
+# Output HDF5/Excel (large; regenerate by running the pipeline)
 output/
