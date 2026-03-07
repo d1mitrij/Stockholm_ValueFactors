@@ -1,7 +1,7 @@
 # Architecture Decision Records — EPS Value Factors
 
 **EPS 2015d.1 — Environmental Priority Strategies characterisation factors
-as transitionvaluation-compatible coefficient matrices**
+as structured coefficient matrices**
 
 ---
 
@@ -10,7 +10,7 @@ as transitionvaluation-compatible coefficient matrices**
 | ADR | Title | Status |
 |-----|-------|--------|
 | ADR-001 | Re-derive EPS indices from pathway rows | Accepted |
-| ADR-002 | Mirror the WifOR five-stage pipeline | Accepted |
+| ADR-002 | Five-stage pipeline (config → load → matrix → deflate → export) | Accepted |
 | ADR-003 | Broadcast D[s] uniformly across all GeoRegion × NACE | Accepted |
 | ADR-004 | Apply EU HICP deflator (GDP, EU27) | Accepted |
 | ADR-005 | Freeze deflator at last known year for forecasts | Accepted |
@@ -59,45 +59,35 @@ substance. Discrepancies above 0.1 % are logged as warnings.
 
 ---
 
-## ADR-002 — Mirror the WifOR five-stage pipeline
+## ADR-002 — Five-stage pipeline (config → load → matrix → deflate → export)
 
 **Status:** Accepted
 **Date:** 2026-02-23
 
 ### Context
 
-The [transitionvaluation](https://github.com/Greenings/transitionvaluation)
-project uses a consistent five-stage pipeline that is documented and understood
-by the team working with the WifOR Value Factors submodule. Adopting the same
-structure makes integration straightforward and reduces the learning curve for
-new contributors.
+A structured, reproducible pipeline is needed that can be extended to new
+indicator categories without structural changes.
 
 ### Decision
 
-`pipeline.py` implements the five stages in the same order and with the same
-function signatures as the WifOR pipeline:
+`pipeline.py` implements five stages in a consistent order:
 
-| Stage | WifOR function | EPS equivalent |
-|-------|---------------|----------------|
-| 1 Configuration | `get_indicator_config()` | `config.get_indicator_config()` |
-| 2 Data Loading | `load_sheet()` | `load_eps_sheet()` |
-| 3 Coefficient Matrix | `create_coefficient_dataframe()` + `populate_coefficients()` | identical names |
-| 4 Inflation Adjustment | `apply_deflation()` | identical name |
-| 5 Output Export | `save_results()` | identical name |
+| Stage | Function |
+|-------|----------|
+| 1 Configuration | `config.get_indicator_config()` |
+| 2 Data Loading | `load_eps_sheet()` |
+| 3 Coefficient Matrix | `create_coefficient_dataframe()` + `populate_coefficients()` |
+| 4 Inflation Adjustment | `apply_deflation()` |
+| 5 Output Export | `save_results()` |
 
-Each of the 12 indicator scripts (`001_…_eps.py` to `012_…_eps.py`) is a
-thin wrapper that calls `pipeline.run_indicator(key)`, mirroring the WifOR
-pattern.
+Each of the 12 indicator scripts is a thin wrapper that calls `pipeline.run_indicator(key)`.
 
 ### Consequences
 
-- Drop-in compatibility with the transitionvaluation loading code.
-- The `config.py` INDICATORS dict, `COMMON_PARAMS`, and `COMMON_PATHS`
-  follow the same key naming conventions, so `get_indicator_config()` returns
-  a flat dict with the same keys.
-- Some WifOR pipeline concepts (e.g., country-specific `D[i, c]` matrices)
-  are collapsed to a global `D[s]` broadcast because EPS has no country
-  variation — this simplification is explicitly documented in `pipeline.py`.
+- Clear stage boundaries make each step independently testable.
+- Country-specific `D[i, c]` matrices are not used because EPS factors are
+  globally uniform — a single `D[s]` broadcast applies to all countries.
 
 ---
 
@@ -108,9 +98,7 @@ pattern.
 
 ### Context
 
-The WifOR pipeline supports country-specific damage cost coefficients
-`D[i, c]` because several of the WifOR indicators (wages, resource rents)
-vary by country. EPS 2015 characterisation factors are deliberately global:
+EPS 2015 characterisation factors are deliberately global:
 Steen (2015) derives a single EPS index per substance that applies worldwide.
 
 ### Decision
@@ -123,12 +111,11 @@ columns using numpy broadcasting:
 arr[row_start:row_end, :] = d_values[:, np.newaxis]
 ```
 
-The full (189 × 21 = 3,969) column structure is maintained in the output
-DataFrames for compatibility with MRIO / EORA26-style analysis frameworks.
+The full (189 × 21 = 3,969) column structure covers all countries and sectors.
 
 ### Consequences
 
-- Output format is fully compatible with the WifOR transitionvaluation loader.
+- The uniform column structure is consistent with multi-sector analysis tools.
 - Storage and computation cost is proportional to (countries × sectors), but
   this is acceptable given blosc-compressed HDF5 storage.
 - The Excel output notes this uniformity explicitly so that analysts do not
@@ -143,14 +130,12 @@ DataFrames for compatibility with MRIO / EORA26-style analysis frameworks.
 
 ### Context
 
-EPS 2015 monetary values are expressed in EUR at 2015 price levels. To produce
-coefficients that are comparable with WifOR outputs (which use year-specific
-EUR values), an inflation adjustment must be applied.
+EPS 2015 monetary values are expressed in EUR at 2015 price levels. An inflation
+adjustment is needed to produce year-nominal coefficients.
 
 ### Decision
 
 Use the Eurostat GDP deflator for EU27, expressed in the base year 2015 = 100.0.
-This matches the WifOR convention for European LCIA datasets.
 
 Source: Eurostat `nama_10_gdp` series (GDP deflator, EU27).
 
@@ -184,14 +169,13 @@ Known values (2014–2023):
 
 ### Context
 
-The year series extends to 2050 and 2100 (long-horizon assessment years
-required by the transitionvaluation framework). No GDP deflator forecast
-is available with sufficient confidence for 2024–2100.
+The year series extends to 2050 and 2100 for long-horizon assessment. No GDP
+deflator forecast is available with sufficient confidence for 2024–2100.
 
 ### Decision
 
 Forecast years beyond 2023 are assigned the last known deflator value (index
-124.1, factor 1.2410). This matches the WifOR behaviour for forecast years.
+124.1, factor 1.2410).
 Unit strings for forecast years are labelled `"2023ELU/{unit}"` to signal
 that the 2023 factor was applied.
 
@@ -434,19 +418,17 @@ bottleneck when all workers read the same large XLSX simultaneously.
 
 EPS 2015 characterisation factors have no sector variation: the same EPS index
 applies to emissions from agriculture as from manufacturing. A sector dimension
-must still be present in the output because MRIO frameworks (EORA26, Exiobase)
-require a consistent (GeoRegion, NACE) column structure.
+must still be present in the output to maintain a consistent
+(GeoRegion, NACE) column structure across all indicators.
 
 ### Decision
 
-Use the NACE A21 macro-classification (21 sectors), matching the WifOR
-transitionvaluation convention. The sectors are defined in `config.NACE_SECTORS`
-and labelled with standard NACE codes (A, B, C10-C12, …, O-U).
+Use the NACE A21 macro-classification (21 sectors). The sectors are defined in
+`config.NACE_SECTORS` and labelled with standard NACE codes (A, B, C10-C12, …, O-U).
 
 ### Consequences
 
-- Direct compatibility with EORA26-style supply-use tables (EORA uses the A21
-  aggregation as its primary sector classification).
+- NACE A21 is a widely used sector classification in multi-sector analysis.
 - All 21 NACE columns hold the same coefficient value for a given (year, substance)
   row — this is a consequence of EPS being globally uniform, not a limitation of
   the output format.

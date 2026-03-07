@@ -1,7 +1,7 @@
 # Data Updates — EPS Value Factors
 
 **EPS 2015d.1 — Environmental Priority Strategies characterisation factors
-as transitionvaluation-compatible coefficient matrices**
+as structured coefficient matrices**
 
 ---
 
@@ -14,7 +14,7 @@ Updates may arise from three sources:
    Cycle Center (e.g., EPS 2015d.2 or EPS 2020).
 2. **Deflator update** — annual update to the EU HICP GDP deflator from Eurostat.
 3. **Geography or sector update** — changes to the country list or NACE
-   classification used by the transitionvaluation framework.
+   sector classification in `config.py`.
 
 ---
 
@@ -160,18 +160,16 @@ Run the full validation procedure from `VALIDATION_REPORT.md`:
 
 ## 3. Updating the Country List
 
-The 189-country list in `config.COUNTRIES` follows the WifOR transitionvaluation
-convention (ISO 3166-1 alpha-3 codes). Updates are required when:
+The 189-country list in `config.COUNTRIES` uses ISO 3166-1 alpha-3 codes.
+Updates are required when:
 
-- A country is added or removed from the WifOR framework.
-- A country changes ISO3 code (e.g., country dissolution or unification).
+- A country ISO3 code changes (e.g., country dissolution or unification).
+- Coverage needs to be expanded or reduced.
 
 ### Procedure
 
 1. Edit `config.COUNTRIES` — add or remove ISO3 codes.
 2. Re-run all indicators. The new country list is applied automatically.
-3. Notify the transitionvaluation maintainers if the change affects cross-project
-   comparability.
 
 **Note:** Because EPS characterisation factors are globally uniform
 (D[s] does not vary by country), adding or removing a country from the list
@@ -182,9 +180,8 @@ columns in the output matrix.
 
 ## 4. Updating the NACE Sector Classification
 
-The 21-sector A21 classification in `config.NACE_SECTORS` is the standard
-for EORA26-style MRIO analysis. Updates are required if the transitionvaluation
-framework adopts a different sector aggregation.
+The 21-sector NACE A21 classification in `config.NACE_SECTORS` is the standard
+macro-aggregation. Updates are required if a different sector aggregation is needed.
 
 ### Procedure
 

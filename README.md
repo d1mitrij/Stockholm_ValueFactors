@@ -1,7 +1,7 @@
 # Stockholm Value Factors
 
 **EPS 2015d.1 — Environmental Priority Strategies characterisation factors
-as transitionvaluation-compatible coefficient matrices**
+as structured coefficient matrices**
 
 Author: Dr Dimitrij Euler, [Greenings](https://greenings.org) — dimitrij.euler@greenings.org
 
@@ -10,9 +10,8 @@ Author: Dr Dimitrij Euler, [Greenings](https://greenings.org) — dimitrij.euler
 ## Overview
 
 This repository transfers the **EPS 2015d.1** Life Cycle Impact Assessment (LCIA)
-dataset (Steen 2015, Swedish Life Cycle Center) into the value-factor pipeline
-architecture established by the
-[transitionvaluation](https://github.com/Greenings/transitionvaluation) project.
+dataset (Steen 2015, Swedish Life Cycle Center) into a structured value-factor
+pipeline using a `config.py` → `pipeline.py` → indicators/ architecture.
 
 Each of the 12 EPS impact categories (inorganic gases, particles, VOCs, pesticides, …)
 is implemented as a standalone indicator script that:
@@ -20,7 +19,7 @@ is implemented as a standalone indicator script that:
 1. **Re-derives** the EPS characterisation factor from the Excel pathway rows
    (re-implementing the Excel formula in Python, not just reading pre-computed totals)
 2. **Produces** a `C[y, substance, country, sector]` coefficient matrix in the
-   WifOR transitionvaluation format
+   standard `(Year, Variable) × (GeoRegion, NACE)` coefficient matrix format
 3. **Exports** to HDF5 (full matrix) and Excel (representative view)
 
 ### Formula
@@ -41,8 +40,7 @@ C[y, s, c, n] = Sign(s) × EPS_index[s] × I[y]
 
 Because EPS 2015 is a **global** characterisation factor, `C` is uniform across
 all `(GeoRegion, NACE)` column pairs for a given `(Year, substance)` row.
-The full 189 × 21 column structure is maintained for compatibility with
-MRIO / EORA26-style analysis frameworks.
+The full 189 × 21 column structure covers all countries and NACE sectors.
 
 ---
 
@@ -75,7 +73,7 @@ Each indicator produces two files in `output/`:
 | `NNN_eps_{indicator}.h5` | Full coefficient matrix (HDF5, keys: `coefficient`, `unit`) |
 | `NNN_eps_{indicator}.xlsx` | Excel: `Coefficients` sheet (50 representative columns), `Units`, `Pathway data` |
 
-### HDF5 structure (mirrors WifOR transitionvaluation)
+### HDF5 structure
 
 ```
 key: "coefficient"
@@ -155,22 +153,6 @@ See [METHODOLOGY.md](METHODOLOGY.md) for the full derivation, formula documentat
 and notes on limitations (no country variation, frozen forecast deflators, unit conventions).
 
 ---
-
-## Relation to transitionvaluation
-
-This project follows the pipeline architecture of
-[Greenings/transitionvaluation](https://github.com/Greenings/transitionvaluation)
-and the [WifOR Value Factors](https://github.com/wifor-impactanalysis/WifOR-Value-Factors)
-submodule:
-
-| WifOR | This project |
-|---|---|
-| `config.py` → `INDICATORS` dict | ✓ |
-| `C[y,i,c,s] = Sign × D[i,c] × I[y]` | ✓ (D uniform across c for EPS) |
-| `(Year, Variable)` row MultiIndex | ✓ |
-| `(GeoRegion, NACE)` column MultiIndex | ✓ |
-| HDF5 keys `"coefficient"`, `"unit"` | ✓ |
-| `ThreadPoolExecutor` parallel runner | ✓ |
 
 ---
 

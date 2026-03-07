@@ -138,8 +138,8 @@ Selected values (base = 2015 = 100.0):
   2025+→ 124.1/100.0 = 1.241   (frozen at last available year)
 ```
 
-Forecast years (2024–2030, 2050, 2100) are frozen at the 2023 value, consistent with
-the WifOR transitionvaluation convention for years beyond the Eurostat data release.
+Forecast years (2024–2030, 2050, 2100) are frozen at the 2023 value, as no Eurostat
+data is available beyond that release.
 
 ---
 
@@ -394,7 +394,7 @@ microplastic ingestion; reduction of fish & meat production capacity).
 ## 5. Data Processing Pipeline
 
 The five-stage pipeline is implemented in `pipeline.py` and called from each indicator
-script. Stages follow the WifOR transitionvaluation convention.
+script. The five stages are:
 
 ```python
 # Stage 1 — Configuration
@@ -448,14 +448,13 @@ coeff_final:
 ### 6.2 Known limitations
 
 - **No country variation.** EPS 2015 characterisation factors are globally uniform.
-  The `(GeoRegion, NACE)` column structure is maintained for MRIO compatibility, but
-  all countries receive identical coefficients. Country-specific damage costs would
+  The `(GeoRegion, NACE)` column structure covers all 189 countries and 21 sectors,
+  but all countries receive identical coefficients. Country-specific damage costs would
   require a value transfer step (PPP or income elasticity adjustment) not present in
   the base EPS 2015 dataset.
 
 - **EUR base currency.** Values are in ELU ≈ EUR (2015 price level). Users comparing
-  to USD-denominated value factor datasets (e.g., WifOR) should apply an EUR/USD
-  exchange rate for the reference year.
+  to USD-denominated datasets should apply an EUR/USD exchange rate for the reference year.
 
 - **Forecast deflation frozen.** Years beyond 2023 use the 2023 EU HICP value.
   Real inflation trends after 2023 are not projected.

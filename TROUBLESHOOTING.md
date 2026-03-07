@@ -1,7 +1,7 @@
 # Troubleshooting — EPS Value Factors
 
 **EPS 2015d.1 — Environmental Priority Strategies characterisation factors
-as transitionvaluation-compatible coefficient matrices**
+as structured coefficient matrices**
 
 ---
 
